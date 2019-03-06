@@ -154,6 +154,20 @@ public abstract class NodeServer {
         }
 
         ClassFilter<Service> serviceFilter = createServiceClassFilter();
+        if (application.singletonrun) { //singleton模式下只加载指定的Service
+            final String ssc = System.getProperty("red" + "kale-singleton-serviceclass");
+            final String extssc = System.getProperty("red" + "kale-singleton-extserviceclasses");
+            if (ssc != null) {
+                final List<String> sscList = new ArrayList<>();
+                sscList.add(ssc);
+                if (extssc != null && !extssc.isEmpty()) {
+                    for (String s : extssc.split(",")) {
+                        if (!s.isEmpty()) sscList.add(s);
+                    }
+                }
+                serviceFilter.setExpectPredicate(c -> !sscList.contains(c));
+            }
+        }
         ClassFilter<Filter> filterFilter = createFilterClassFilter();
         ClassFilter<Servlet> servletFilter = createServletClassFilter();
         ClassFilter otherFilter = createOtherClassFilter();
@@ -162,9 +176,10 @@ public abstract class NodeServer {
         long e = System.currentTimeMillis() - s;
         logger.info(this.getClass().getSimpleName() + " load filter class in " + e + " ms");
         loadService(serviceFilter, otherFilter); //必须在servlet之前
-        loadFilter(filterFilter, otherFilter);
-        loadServlet(servletFilter, otherFilter);
-
+        if (!application.singletonrun) { //非singleton模式下才加载Filter、Servlet
+            loadFilter(filterFilter, otherFilter);
+            loadServlet(servletFilter, otherFilter);
+        }
         if (this.interceptor != null) this.resourceFactory.inject(this.interceptor);
     }
 

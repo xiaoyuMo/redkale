@@ -93,6 +93,7 @@ public abstract class ConvertFactory<R extends Reader, W extends Writer> {
             this.register(String.class, StringSimpledCoder.instance);
             this.register(CharSequence.class, CharSequenceSimpledCoder.instance);
             this.register(java.util.Date.class, DateSimpledCoder.instance);
+            this.register(java.time.Duration.class, DurationSimpledCoder.instance);
             this.register(AtomicInteger.class, AtomicIntegerSimpledCoder.instance);
             this.register(AtomicLong.class, AtomicLongSimpledCoder.instance);
             this.register(BigInteger.class, BigIntegerSimpledCoder.instance);
@@ -219,15 +220,10 @@ public abstract class ConvertFactory<R extends Reader, W extends Writer> {
         return false;
     }
 
-    public ConvertColumnEntry findRef(AccessibleObject element) {
+    public ConvertColumnEntry findRef(Class clazz, AccessibleObject element) {
         if (element == null) return null;
         ConvertColumnEntry en = this.columnEntrys.get(element);
-        Set<String> onlyColumns = null;
-        if (element instanceof Method) {
-            onlyColumns = ignoreAlls.get(((Method) element).getDeclaringClass());
-        } else if (element instanceof Field) {
-            onlyColumns = ignoreAlls.get(((Field) element).getDeclaringClass());
-        }
+        Set<String> onlyColumns = ignoreAlls.get(clazz);
         if (en != null && onlyColumns == null) return en;
         final ConvertType ct = this.getConvertType();
         ConvertColumn[] ccs = element.getAnnotationsByType(ConvertColumn.class);

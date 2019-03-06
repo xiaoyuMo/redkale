@@ -158,6 +158,21 @@ public class JsonReader extends Reader {
         this.position--;
     }
 
+    @Override
+    public final ValueType readType() {
+        char ch = nextGoodChar();
+        if (ch == '{') {
+            backChar(ch);
+            return ValueType.MAP;
+        }
+        if (ch == '[') {
+            backChar(ch);
+            return ValueType.ARRAY;
+        }
+        backChar(ch);
+        return ValueType.STRING;
+    }
+
     /**
      * 判断下一个非空白字符是否为{
      *

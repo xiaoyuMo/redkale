@@ -58,6 +58,10 @@ public class RetResult<T> {
         return new RetResult();
     }
 
+    public static <V> RetResult success(V result) {
+        return new RetResult().result(result);
+    }
+
     public static <T> CompletableFuture<RetResult<T>> successFuture() {
         return CompletableFuture.completedFuture(new RetResult());
     }
@@ -201,6 +205,18 @@ public class RetResult<T> {
      */
     public Map<String, String> getAttach() {
         return attach;
+    }
+
+    /**
+     * 获取附件元素值
+     *
+     * @param name     元素名
+     * @param defValue 默认值
+     *
+     * @return 结果值
+     */
+    public String getAttach(String name, String defValue) {
+        return attach == null ? defValue : attach.getOrDefault(name, defValue);
     }
 
     /**

@@ -32,60 +32,105 @@ public interface DataSource {
     public String getType();
 
     //----------------------insertAsync-----------------------------
+    //insert 暂时不支持Collection、Stream， 因为存在@RpcCall问题
     /**
      * 新增记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
      *
-     * @param <T>    泛型
-     * @param values Entity对象
-     * 
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
      * @return 影响的记录条数
      */
-    public <T> int insert(final T... values);
+    public <T> int insert(final T... entitys);
 
     /**
      * 新增记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
      *
-     * @param <T>    泛型
-     * @param values Entity对象
+     * @param <T>     泛型
+     * @param entitys Entity对象
      *
      * @return CompletableFuture
      */
-    public <T> CompletableFuture<Integer> insertAsync(final T... values);
+    public <T> CompletableFuture<Integer> insertAsync(final T... entitys);
 
     //-------------------------deleteAsync--------------------------
     /**
      * 删除指定主键值的记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
      * 等价SQL: DELETE FROM {table} WHERE {primary} IN {values.id}  <br>
      *
-     * @param <T>    泛型
-     * @param values Entity对象
+     * @param <T>     泛型
+     * @param entitys Entity对象
      *
      * @return 影响的记录条数
      */
-    public <T> int delete(final T... values);
+    public <T> int delete(final T... entitys);
 
     /**
      * 删除指定主键值的记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
      * 等价SQL: DELETE FROM {table} WHERE {primary} IN {values.id}  <br>
      *
-     * @param <T>    泛型
-     * @param values Entity对象
-     *
-     * @return 影响的记录条数CompletableFuture
-     */
-    public <T> CompletableFuture<Integer> deleteAsync(final T... values);
-
-    /**
-     * 删除指定主键值的记录,多主键值必须在同一张表中  <br>
-     * 等价SQL: DELETE FROM {table} WHERE {primary} IN {ids}  <br>
-     *
-     * @param <T>   Entity泛型
-     * @param clazz Entity类
-     * @param ids   主键值
+     * @param <T>     泛型
+     * @param entitys Entity对象
      *
      * @return 影响的记录条数
      */
-    public <T> int delete(final Class<T> clazz, final Serializable... ids);
+    default <T> int delete(final Collection<T> entitys) {
+        if (entitys == null || entitys.isEmpty()) return 0;
+        return delete(entitys.toArray());
+    }
+
+    /**
+     * 删除指定主键值的记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL: DELETE FROM {table} WHERE {primary} IN {values.id}  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数
+     */
+    default <T> int delete(final Stream<T> entitys) {
+        if (entitys == null) return 0;
+        return delete(entitys.toArray());
+    }
+
+    /**
+     * 删除指定主键值的记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL: DELETE FROM {table} WHERE {primary} IN {values.id}  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    public <T> CompletableFuture<Integer> deleteAsync(final T... entitys);
+
+    /**
+     * 删除指定主键值的记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL: DELETE FROM {table} WHERE {primary} IN {values.id}  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    default <T> CompletableFuture<Integer> deleteAsync(final Collection<T> entitys) {
+        if (entitys == null || entitys.isEmpty()) return CompletableFuture.completedFuture(0);
+        return deleteAsync(entitys.toArray());
+    }
+
+    /**
+     * 删除指定主键值的记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL: DELETE FROM {table} WHERE {primary} IN {values.id}  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    default <T> CompletableFuture<Integer> deleteAsync(final Stream<T> entitys) {
+        if (entitys == null) return CompletableFuture.completedFuture(0);
+        return deleteAsync(entitys.toArray());
+    }
 
     /**
      * 删除指定主键值的记录,多主键值必须在同一张表中  <br>
@@ -93,11 +138,23 @@ public interface DataSource {
      *
      * @param <T>   Entity泛型
      * @param clazz Entity类
-     * @param ids   主键值
+     * @param pks   主键值
+     *
+     * @return 影响的记录条数
+     */
+    public <T> int delete(final Class<T> clazz, final Serializable... pks);
+
+    /**
+     * 删除指定主键值的记录,多主键值必须在同一张表中  <br>
+     * 等价SQL: DELETE FROM {table} WHERE {primary} IN {ids}  <br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     * @param pks   主键值
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> deleteAsync(final Class<T> clazz, final Serializable... ids);
+    public <T> CompletableFuture<Integer> deleteAsync(final Class<T> clazz, final Serializable... pks);
 
     /**
      * 删除符合过滤条件的记录  <br>
@@ -151,6 +208,100 @@ public interface DataSource {
      */
     public <T> CompletableFuture<Integer> deleteAsync(final Class<T> clazz, final Flipper flipper, final FilterNode node);
 
+    //------------------------clearAsync---------------------------
+    /**
+     * 清空表  <br>
+     * 等价SQL: TRUNCATE TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     *
+     * @return 影响的记录条数
+     */
+    public <T> int clearTable(final Class<T> clazz);
+
+    /**
+     * 清空表  <br>
+     * 等价SQL: TRUNCATE TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    public <T> CompletableFuture<Integer> clearTableAsync(final Class<T> clazz);
+
+    /**
+     * 清空表  <br>
+     * 等价SQL: TRUNCATE TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     * @param node  过滤条件
+     *
+     * @return 影响的记录条数
+     */
+    public <T> int clearTable(final Class<T> clazz, final FilterNode node);
+
+    /**
+     * 清空表  <br>
+     * 等价SQL: TRUNCATE TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     * @param node  过滤条件
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    public <T> CompletableFuture<Integer> clearTableAsync(final Class<T> clazz, final FilterNode node);
+
+    //------------------------dropAsync---------------------------
+    /**
+     * 删除表  <br>
+     * 等价SQL: DROP TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     *
+     * @return 影响的记录条数
+     */
+    public <T> int dropTable(final Class<T> clazz);
+
+    /**
+     * 删除表  <br>
+     * 等价SQL: DROP TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    public <T> CompletableFuture<Integer> dropTableAsync(final Class<T> clazz);
+
+    /**
+     * 删除表  <br>
+     * 等价SQL: DROP TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     * @param node  过滤条件
+     *
+     * @return 影响的记录条数
+     */
+    public <T> int dropTable(final Class<T> clazz, final FilterNode node);
+
+    /**
+     * 删除表  <br>
+     * 等价SQL: DROP TABLE {table}<br>
+     *
+     * @param <T>   Entity泛型
+     * @param clazz Entity类
+     * @param node  过滤条件
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    public <T> CompletableFuture<Integer> dropTableAsync(final Class<T> clazz, final FilterNode node);
+
     //------------------------updateAsync---------------------------
     /**
      * 更新记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
@@ -159,12 +310,12 @@ public interface DataSource {
      * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id2}  <br>
      * &#183;&#183;&#183;  <br>
      *
-     * @param <T>    泛型
-     * @param values Entity对象
+     * @param <T>     泛型
+     * @param entitys Entity对象
      *
      * @return 影响的记录条数
      */
-    public <T> int update(final T... values);
+    public <T> int update(final T... entitys);
 
     /**
      * 更新记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
@@ -173,12 +324,80 @@ public interface DataSource {
      * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id2}  <br>
      * &#183;&#183;&#183;  <br>
      *
-     * @param <T>    泛型
-     * @param values Entity对象
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数
+     */
+    default <T> int update(final Collection<T> entitys) {
+        if (entitys == null || entitys.isEmpty()) return 0;
+        return update(entitys.toArray());
+    }
+
+    /**
+     * 更新记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL:  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id1}  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id2}  <br>
+     * &#183;&#183;&#183;  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数
+     */
+    default <T> int update(final Stream<T> entitys) {
+        if (entitys == null) return 0;
+        return update(entitys.toArray());
+    }
+
+    /**
+     * 更新记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL:  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id1}  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id2}  <br>
+     * &#183;&#183;&#183;  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateAsync(final T... values);
+    public <T> CompletableFuture<Integer> updateAsync(final T... entitys);
+
+    /**
+     * 更新记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL:  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id1}  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id2}  <br>
+     * &#183;&#183;&#183;  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    default <T> CompletableFuture<Integer> updateAsync(final Collection<T> entitys) {
+        if (entitys == null || entitys.isEmpty()) return CompletableFuture.completedFuture(0);
+        return updateAsync(entitys.toArray());
+    }
+
+    /**
+     * 更新记录， 多对象必须是同一个Entity类且必须在同一张表中  <br>
+     * 等价SQL:  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id1}  <br>
+     * UPDATE {table} SET column1 = value1, column2 = value2, &#183;&#183;&#183; WHERE {primary} = {id2}  <br>
+     * &#183;&#183;&#183;  <br>
+     *
+     * @param <T>     泛型
+     * @param entitys Entity对象
+     *
+     * @return 影响的记录条数CompletableFuture
+     */
+    default <T> CompletableFuture<Integer> updateAsync(final Stream<T> entitys) {
+        if (entitys == null) return CompletableFuture.completedFuture(0);
+        return updateAsync(entitys.toArray());
+    }
 
     /**
      * 更新单个记录的单个字段  <br>
@@ -187,13 +406,13 @@ public interface DataSource {
      *
      * @param <T>    Entity泛型
      * @param clazz  Entity类
-     * @param id     主键
+     * @param pk     主键
      * @param column 待更新的字段名
      * @param value  更新值
      *
      * @return 影响的记录条数
      */
-    public <T> int updateColumn(final Class<T> clazz, final Serializable id, final String column, final Serializable value);
+    public <T> int updateColumn(final Class<T> clazz, final Serializable pk, final String column, final Serializable value);
 
     /**
      * 更新单个记录的单个字段  <br>
@@ -202,13 +421,13 @@ public interface DataSource {
      *
      * @param <T>    Entity泛型
      * @param clazz  Entity类
-     * @param id     主键
+     * @param pk     主键
      * @param column 待更新的字段名
      * @param value  更新值
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateColumnAsync(final Class<T> clazz, final Serializable id, final String column, final Serializable value);
+    public <T> CompletableFuture<Integer> updateColumnAsync(final Class<T> clazz, final Serializable pk, final String column, final Serializable value);
 
     /**
      * 更新符合过滤条件记录的单个字段   <br>
@@ -247,12 +466,12 @@ public interface DataSource {
      *
      * @param <T>    Entity泛型
      * @param clazz  Entity类
-     * @param id     主键
+     * @param pk     主键
      * @param values 更新字段
      *
      * @return 影响的记录条数
      */
-    public <T> int updateColumn(final Class<T> clazz, final Serializable id, final ColumnValue... values);
+    public <T> int updateColumn(final Class<T> clazz, final Serializable pk, final ColumnValue... values);
 
     /**
      * 更新指定主键值记录的部分字段   <br>
@@ -261,12 +480,12 @@ public interface DataSource {
      *
      * @param <T>    Entity泛型
      * @param clazz  Entity类
-     * @param id     主键
+     * @param pk     主键
      * @param values 更新字段
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateColumnAsync(final Class<T> clazz, final Serializable id, final ColumnValue... values);
+    public <T> CompletableFuture<Integer> updateColumnAsync(final Class<T> clazz, final Serializable pk, final ColumnValue... values);
 
     /**
      * 更新符合过滤条件记录的部分字段   <br>
@@ -336,12 +555,12 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {primary} = {bean.id}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param columns 需更新的字段名
      *
      * @return 影响的记录条数
      */
-    public <T> int updateColumn(final T bean, final String... columns);
+    public <T> int updateColumn(final T entity, final String... columns);
 
     /**
      * 更新单个记录的指定字段   <br>
@@ -349,12 +568,12 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {primary} = {bean.id}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param columns 需更新的字段名
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateColumnAsync(final T bean, final String... columns);
+    public <T> CompletableFuture<Integer> updateColumnAsync(final T entity, final String... columns);
 
     /**
      * 更新符合过滤条件记录的指定字段   <br>
@@ -362,13 +581,13 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {filter node}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param node    过滤条件
      * @param columns 需更新的字段名
      *
      * @return 影响的记录条数
      */
-    public <T> int updateColumn(final T bean, final FilterNode node, final String... columns);
+    public <T> int updateColumn(final T entity, final FilterNode node, final String... columns);
 
     /**
      * 更新符合过滤条件记录的指定字段   <br>
@@ -376,13 +595,13 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {filter node}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param node    过滤条件
      * @param columns 需更新的字段名
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateColumnAsync(final T bean, final FilterNode node, final String... columns);
+    public <T> CompletableFuture<Integer> updateColumnAsync(final T entity, final FilterNode node, final String... columns);
 
     /**
      * 更新单个记录的指定字段   <br>
@@ -390,12 +609,12 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {primary} = {bean.id}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param selects 指定字段
      *
      * @return 影响的记录条数
      */
-    public <T> int updateColumn(final T bean, final SelectColumn selects);
+    public <T> int updateColumn(final T entity, final SelectColumn selects);
 
     /**
      * 更新单个记录的指定字段   <br>
@@ -403,12 +622,12 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {primary} = {bean.id}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param selects 指定字段
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateColumnAsync(final T bean, final SelectColumn selects);
+    public <T> CompletableFuture<Integer> updateColumnAsync(final T entity, final SelectColumn selects);
 
     /**
      * 更新符合过滤条件记录的指定字段   <br>
@@ -416,13 +635,13 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {filter node}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param node    过滤条件
      * @param selects 指定字段
      *
      * @return 影响的记录条数
      */
-    public <T> int updateColumn(final T bean, final FilterNode node, final SelectColumn selects);
+    public <T> int updateColumn(final T entity, final FilterNode node, final SelectColumn selects);
 
     /**
      * 更新符合过滤条件记录的指定字段   <br>
@@ -430,13 +649,13 @@ public interface DataSource {
      * 等价SQL: UPDATE {table} SET {column1} = {value1}, {column2} = {value2}, {column3} = {value3}, &#183;&#183;&#183; WHERE {filter node}  <br>
      *
      * @param <T>     Entity泛型
-     * @param bean    待更新的Entity对象
+     * @param entity  待更新的Entity对象
      * @param node    过滤条件
      * @param selects 指定字段
      *
      * @return 影响的记录条数CompletableFuture
      */
-    public <T> CompletableFuture<Integer> updateColumnAsync(final T bean, final FilterNode node, final SelectColumn selects);
+    public <T> CompletableFuture<Integer> updateColumnAsync(final T entity, final FilterNode node, final SelectColumn selects);
 
     //############################################# 查询接口 #############################################
     //-----------------------getXXXXResult-----------------------------
@@ -856,11 +1075,11 @@ public interface DataSource {
      * @param <T>    Entity泛型
      * @param clazz  Entity类
      * @param column 过滤字段名
-     * @param key    过滤字段值
+     * @param colval 过滤字段值
      *
      * @return Entity对象
      */
-    public <T> T find(final Class<T> clazz, final String column, final Serializable key);
+    public <T> T find(final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 获取符合过滤条件单个记录, 返回null表示不存在值   <br>
@@ -869,11 +1088,11 @@ public interface DataSource {
      * @param <T>    Entity泛型
      * @param clazz  Entity类
      * @param column 过滤字段名
-     * @param key    过滤字段值
+     * @param colval 过滤字段值
      *
      * @return Entity对象CompletableFuture
      */
-    public <T> CompletableFuture<T> findAsync(final Class<T> clazz, final String column, final Serializable key);
+    public <T> CompletableFuture<T> findAsync(final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 获取符合过滤条件单个记录, 返回null表示不存在值   <br>
@@ -1219,11 +1438,11 @@ public interface DataSource {
      * @param selectedColumn 指定字段
      * @param clazz          Entity类
      * @param column         过滤字段名
-     * @param key            过滤字段值
+     * @param colval         过滤字段值
      *
      * @return 字段值的集合
      */
-    public <T, V extends Serializable> HashSet<V> queryColumnSet(final String selectedColumn, final Class<T> clazz, final String column, final Serializable key);
+    public <T, V extends Serializable> HashSet<V> queryColumnSet(final String selectedColumn, final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的某个字段Set集合   <br>
@@ -1234,11 +1453,11 @@ public interface DataSource {
      * @param selectedColumn 指定字段
      * @param clazz          Entity类
      * @param column         过滤字段名
-     * @param key            过滤字段值
+     * @param colval         过滤字段值
      *
      * @return 字段值的集合CompletableFuture
      */
-    public <T, V extends Serializable> CompletableFuture<HashSet<V>> queryColumnSetAsync(final String selectedColumn, final Class<T> clazz, final String column, final Serializable key);
+    public <T, V extends Serializable> CompletableFuture<HashSet<V>> queryColumnSetAsync(final String selectedColumn, final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的某个字段Set集合   <br>
@@ -1305,11 +1524,11 @@ public interface DataSource {
      * @param selectedColumn 指定字段
      * @param clazz          Entity类
      * @param column         过滤字段名
-     * @param key            过滤字段值
+     * @param colval         过滤字段值
      *
      * @return 字段值的集合
      */
-    public <T, V extends Serializable> List<V> queryColumnList(final String selectedColumn, final Class<T> clazz, final String column, final Serializable key);
+    public <T, V extends Serializable> List<V> queryColumnList(final String selectedColumn, final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的某个字段List集合   <br>
@@ -1320,11 +1539,11 @@ public interface DataSource {
      * @param selectedColumn 指定字段
      * @param clazz          Entity类
      * @param column         过滤字段名
-     * @param key            过滤字段值
+     * @param colval         过滤字段值
      *
      * @return 字段值的集合CompletableFuture
      */
-    public <T, V extends Serializable> CompletableFuture<List<V>> queryColumnListAsync(final String selectedColumn, final Class<T> clazz, final String column, final Serializable key);
+    public <T, V extends Serializable> CompletableFuture<List<V>> queryColumnListAsync(final String selectedColumn, final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的某个字段List集合   <br>
@@ -1671,11 +1890,11 @@ public interface DataSource {
      * @param <T>    Entity泛型
      * @param clazz  Entity类
      * @param column 过滤字段名
-     * @param key    过滤字段值
+     * @param colval 过滤字段值
      *
      * @return Entity的集合
      */
-    public <T> List<T> queryList(final Class<T> clazz, final String column, final Serializable key);
+    public <T> List<T> queryList(final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的List集合   <br>
@@ -1684,11 +1903,11 @@ public interface DataSource {
      * @param <T>    Entity泛型
      * @param clazz  Entity类
      * @param column 过滤字段名
-     * @param key    过滤字段值
+     * @param colval 过滤字段值
      *
      * @return Entity的集合CompletableFuture
      */
-    public <T> CompletableFuture<List<T>> queryListAsync(final Class<T> clazz, final String column, final Serializable key);
+    public <T> CompletableFuture<List<T>> queryListAsync(final Class<T> clazz, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的List集合   <br>
@@ -1824,11 +2043,11 @@ public interface DataSource {
      * @param clazz   Entity类
      * @param flipper 翻页对象
      * @param column  过滤字段名
-     * @param key     过滤字段值
+     * @param colval  过滤字段值
      *
      * @return Entity的集合
      */
-    public <T> List<T> queryList(final Class<T> clazz, final Flipper flipper, final String column, final Serializable key);
+    public <T> List<T> queryList(final Class<T> clazz, final Flipper flipper, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的List集合   <br>
@@ -1838,11 +2057,11 @@ public interface DataSource {
      * @param clazz   Entity类
      * @param flipper 翻页对象
      * @param column  过滤字段名
-     * @param key     过滤字段值
+     * @param colval  过滤字段值
      *
      * @return Entity的集合CompletableFuture
      */
-    public <T> CompletableFuture<List<T>> queryListAsync(final Class<T> clazz, final Flipper flipper, final String column, final Serializable key);
+    public <T> CompletableFuture<List<T>> queryListAsync(final Class<T> clazz, final Flipper flipper, final String column, final Serializable colval);
 
     /**
      * 查询符合过滤条件记录的List集合   <br>

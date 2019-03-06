@@ -110,9 +110,21 @@ public class TcpAioAsyncConnection extends AsyncConnection {
         channel.read(dst, timeout < 0 ? 0 : timeout, unit, dst, handler);
     }
 
-    private <A> void nextWrite(A attachment) {
+    private <A> void nextWrite(Throwable exc, A attachment) {
         BlockingQueue<WriteEntry> queue = this.writeQueue;
+        if (queue != null && exc != null && !isOpen()) {
+            WriteEntry entry;
+            while ((entry = queue.poll()) != null) {
+                try {
+                    entry.writeHandler.failed(exc, entry.writeAttachment);
+                } catch (Throwable e) {
+                    e.printStackTrace(System.err);
+                }
+            }
+            return;
+        }
         WriteEntry entry = queue == null ? null : queue.poll();
+
         if (entry != null) {
             try {
                 if (entry.writeOneBuffer == null) {
@@ -312,18 +324,27 @@ public class TcpAioAsyncConnection extends AsyncConnection {
                     failed(e, attachment);
                     return;
                 }
-                nextWrite(attachment);
-                writeHandler.completed(writeCount, attachment);
+                try {
+                    writeHandler.completed(writeCount, attachment);
+                } finally {
+                    nextWrite(null, attachment);
+                }
             } else {
-                nextWrite(attachment);
-                writeHandler.completed(result.intValue(), attachment);
+                try {
+                    writeHandler.completed(result.intValue(), attachment);
+                } finally {
+                    nextWrite(null, attachment);
+                }
             }
         }
 
         @Override
         public void failed(Throwable exc, A attachment) {
-            nextWrite(attachment);
-            writeHandler.failed(exc, attachment);
+            try {
+                writeHandler.failed(exc, attachment);
+            } finally {
+                nextWrite(exc, attachment);
+            }
         }
 
     }
@@ -350,14 +371,21 @@ public class TcpAioAsyncConnection extends AsyncConnection {
                 failed(e, attachment);
                 return;
             }
-            nextWrite(attachment);
-            writeHandler.completed(result, attachment);
+            try {
+                writeHandler.completed(result, attachment);
+            } finally {
+                nextWrite(null, attachment);
+            }
+
         }
 
         @Override
         public void failed(Throwable exc, A attachment) {
-            nextWrite(attachment);
-            writeHandler.failed(exc, attachment);
+            try {
+                writeHandler.failed(exc, attachment);
+            } finally {
+                nextWrite(exc, attachment);
+            }
         }
 
     }
